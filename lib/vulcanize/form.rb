@@ -1,6 +1,6 @@
 module Vulcanize
   AttributeRequired = Class.new ArgumentError
-  
+
   class Form
     def self.attributes
       @attributes ||= {}
@@ -16,12 +16,12 @@ module Vulcanize
 
         missing = raw.nil? || raw.empty?
 
-        fail AttributeRequired if required and missing
-        return default if missing
-
         begin
+          fail AttributeRequired, "#{attribute_name} is required" if required and missing
+          return default if missing
+
           return type.new raw
-        rescue ArgumentError => err
+        rescue ArgumentError, AttributeRequired => err
           return block.call raw, err if block
           raise
         end
@@ -58,6 +58,27 @@ module Vulcanize
       false
     end
 
+    def errors
+      attribute_errors + Array(form_errors)
+    end
+
+    def form_errors
+      []
+    end
+
+    def attribute_errors
+      results = []
+      attributes.keys.each do |attribute|
+        self.send(attribute) do |input,error|
+          results <<
+            { attribute: attribute,
+              input: input,
+              error: error
+            }
+        end
+      end
+      results
+    end
     attr_reader :input
 
   end
